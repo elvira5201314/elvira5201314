@@ -7,6 +7,17 @@
     <title>萌寵當家 | 後台管理系統</title>
     <link rel="icon" href="logo.png">
 
+    <!-- PWA Admin 設定 -->
+    <link rel="manifest" href="manifest-admin.json">
+    <meta name="theme-color" content="#D88E99">
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw-admin.js');
+            });
+        }
+    </script>
+
     <!-- 引入與首頁相同的字體 -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -142,12 +153,15 @@
                 </div>
                 
                 <div class="flex items-center gap-2">
+                    <button onclick="openChangePasswordModal()" class="text-xs font-bold text-theme-text hover:text-theme-rose px-3 py-2 rounded-lg hover:bg-theme-rose/5 transition flex items-center gap-1.5" title="變更密碼">
+                        <i data-lucide="key-round" class="w-4 h-4"></i> <span class="hidden sm:inline">變更密碼</span>
+                    </button>
+                    <div class="w-px h-4 bg-gray-300 mx-1"></div>
                     <button onclick="handleLogout()" class="text-xs font-bold text-theme-sub hover:text-theme-rose px-3 py-2 rounded-lg hover:bg-theme-rose/5 transition flex items-center gap-1.5">
                         <i data-lucide="log-out" class="w-4 h-4"></i> 登出
                     </button>
                 </div>
-            </div>
-        </nav>
+                    </nav>
 
         <div class="max-w-4xl mx-auto p-6 space-y-6">
             
@@ -207,6 +221,50 @@
             </div>
         </div>
     </div>
+    <!-- 變更密碼彈窗 -->
+    <div id="change-pwd-modal" class="fixed inset-0 bg-theme-text/40 hidden z-[80] flex items-center justify-center p-4 backdrop-blur-sm opacity-0 transition-opacity duration-300">
+        <div class="bg-white p-8 rounded-[24px] w-full max-w-[400px] shadow-2xl transform scale-95 transition-transform duration-300 relative">
+            
+            <!-- 關閉按鈕 -->
+            <button onclick="closeChangePasswordModal()" class="absolute top-6 right-6 text-gray-400 hover:text-gray-600 transition">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+
+            <h3 class="text-xl font-bold text-theme-text mb-8 tracking-wider font-serif">變更管理密碼</h3>
+
+            <div class="space-y-4">
+                <!-- 舊密碼 -->
+                <div class="relative group">
+                    <i data-lucide="lock" class="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-theme-sub/50"></i>
+                    <input type="password" id="cp-old-password" placeholder="輸入舊密碼" 
+                           class="w-full bg-[#FAF8F5] border border-transparent focus:bg-white focus:border-theme-rose/30 rounded-xl py-3 pl-11 pr-4 text-sm text-theme-text outline-none transition-all placeholder:text-gray-400">
+                </div>
+
+                <!-- 新密碼 -->
+                <div class="relative group">
+                    <i data-lucide="key" class="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-theme-sub/50"></i>
+                    <input type="password" id="cp-new-password" placeholder="新密碼 (至少6位)" 
+                           class="w-full bg-[#FAF8F5] border border-transparent focus:bg-white focus:border-theme-rose/30 rounded-xl py-3 pl-11 pr-4 text-sm text-theme-text outline-none transition-all placeholder:text-gray-400">
+                </div>
+
+                <!-- 確認新密碼 -->
+                <div class="relative group">
+                    <i data-lucide="shield-check" class="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-theme-sub/50"></i>
+                    <input type="password" id="cp-confirm-password" placeholder="確認新密碼" 
+                           class="w-full bg-[#FAF8F5] border border-transparent focus:bg-white focus:border-theme-rose/30 rounded-xl py-3 pl-11 pr-4 text-sm text-theme-text outline-none transition-all placeholder:text-gray-400">
+                </div>
+            </div>
+
+            <div class="flex gap-3 mt-8">
+                <button onclick="closeChangePasswordModal()" class="flex-1 py-3 bg-[#F3F4F6] text-theme-text font-bold rounded-xl hover:bg-gray-200 transition text-sm">
+                    取消
+                </button>
+                <button onclick="handleChangePassword()" id="btn-change-pwd" class="flex-1 py-3 bg-[#5D5447] text-white font-bold rounded-xl shadow-lg hover:bg-[#4A4238] active:scale-95 transition text-sm flex items-center justify-center gap-2">
+                    確認修改
+                </button>
+            </div>
+        </div>
+    </div>
 
     <!-- 通用密碼驗證彈窗 -->
     <div id="auth-modal" class="fixed inset-0 bg-theme-text/40 hidden z-[70] flex items-center justify-center p-6 backdrop-blur-sm opacity-0 transition-opacity duration-300">
@@ -239,8 +297,18 @@
 <script>
     // 初始化
     lucide.createIcons();
+
+    // --- 檢查是否剛修改完密碼 ---
+    if (localStorage.getItem('pwd_changed')) {
+        // 延遲一點點顯示，確保畫面載入完成
+        setTimeout(() => {
+            showToast('密碼修改成功，請使用新密碼登入', 'success');
+        }, 500);
+        localStorage.removeItem('pwd_changed'); // 清除標記
+    }
     
     // --- Supabase 設定 ---
+
     const SUPABASE_URL = 'https://anzxwdphcxafxsglomez.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFuenh3ZHBoY3hhZnhzZ2xvbWV6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg3MjU2MzUsImV4cCI6MjA4NDMwMTYzNX0.i6ZHUO7UGz8AbAUz7fPHavYxKG1O-UE4k7Xr2VqP9xc';
     const _supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -301,6 +369,87 @@
     async function handleLogout() {
         await _supabase.auth.signOut();
         location.reload();
+    }
+    // --- 變更密碼功能 ---
+    
+    function openChangePasswordModal() {
+        const modal = document.getElementById('change-pwd-modal');
+        // 清空欄位
+        document.getElementById('cp-old-password').value = '';
+        document.getElementById('cp-new-password').value = '';
+        document.getElementById('cp-confirm-password').value = '';
+        
+        modal.classList.remove('hidden');
+        setTimeout(() => modal.classList.remove('opacity-0'), 10);
+        lucide.createIcons();
+    }
+
+    function closeChangePasswordModal() {
+        const modal = document.getElementById('change-pwd-modal');
+        modal.classList.add('opacity-0');
+        setTimeout(() => modal.classList.add('hidden'), 300);
+    }
+
+    async function handleChangePassword() {
+        const oldPwd = document.getElementById('cp-old-password').value;
+        const newPwd = document.getElementById('cp-new-password').value;
+        const confirmPwd = document.getElementById('cp-confirm-password').value;
+        const btn = document.getElementById('btn-change-pwd');
+        const originalText = btn.innerHTML;
+
+        // 1. 基本驗證
+        if (!oldPwd || !newPwd || !confirmPwd) {
+            showToast('請填寫所有欄位', 'error');
+            return;
+        }
+        if (newPwd.length < 6) {
+            showToast('新密碼長度需至少 6 位', 'error');
+            return;
+        }
+        if (newPwd !== confirmPwd) {
+            showToast('兩次新密碼輸入不一致', 'error');
+            return;
+        }
+
+        try {
+            btn.innerHTML = '<i data-lucide="loader-2" class="animate-spin w-4 h-4"></i> 處理中';
+            btn.disabled = true;
+            lucide.createIcons();
+
+            // 2. 驗證舊密碼是否正確 (重新登入一次來驗證)
+            // 這裡假設你的管理員 email 是固定的
+            const email = 'elvira5201314@gmail.com'; 
+            
+            const { error: signInError } = await _supabase.auth.signInWithPassword({
+                email: email,
+                password: oldPwd
+            });
+
+            if (signInError) {
+                throw new Error('舊密碼錯誤');
+            }
+
+            // 3. 更新密碼
+            const { error: updateError } = await _supabase.auth.updateUser({ 
+                password: newPwd 
+            });
+
+            if (updateError) throw updateError;
+
+            // --- 修改成功後的動作 ---
+            await _supabase.auth.signOut(); // 強制登出
+            localStorage.setItem('pwd_changed', 'true'); // 設定標記
+            location.reload(); // 重新整理頁面
+
+        } catch (error) {
+
+            console.error(error);
+            showToast(error.message || '修改失敗', 'error');
+        } finally {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+            lucide.createIcons();
+        }
     }
 
     // 載入資料
