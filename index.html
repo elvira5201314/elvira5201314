@@ -79,9 +79,21 @@
             line-height: 1.7; /* 增加行高，提升閱讀呼吸感 */
         }
         
-        h1, h2, h3, .font-serif { font-family: 'Noto Serif TC', serif; }
-        
-        /* 數字強制使用襯線體或等寬字體 */
+h1, h2, h3, .font-serif { font-family: 'Noto Serif TC', serif; }
+
+/* --- Mobile Optimization (新增優化) --- */
+/* 防止手機雙擊縮放延遲，讓按鈕反應更快 */
+a, button, input, select, textarea, label {
+    touch-action: manipulation;
+}
+
+/* 強制 iOS 輸入框字體不小於 16px，防止自動放大 */
+input, select, textarea {
+    font-size: 16px !important; 
+}
+
+/* 數字強制使用襯線體或等寬字體 */
+
         .font-num, input[type="tel"], input[type="number"], .input-minimal {
     font-family: 'Cormorant Garamond', 'Noto Serif TC', serif;
             font-variant-numeric: tabular-nums; /* 讓數字等寬排列 */
@@ -850,13 +862,14 @@
                     </div>
                 </section>
 
-                <button onclick="submitForm(this)" class="w-full bg-gradient-lux text-white py-4 rounded-2xl font-bold shadow-lg shadow-theme-rose/30 active:scale-[0.98] transition-all flex items-center justify-center gap-3 tracking-[0.2em] text-lg mt-4 group overflow-hidden relative">
-                    <div class="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
-                    <span class="relative z-10">確認並提交數位契約</span>
-                    <i data-lucide="send" class="w-5 h-5 relative z-10 group-hover:translate-x-1 transition-transform"></i>
-                </button>
-                
-                <div class="h-6"></div>
+<button onclick="submitForm(this)" class="w-full bg-gradient-lux text-white py-4 rounded-2xl font-bold shadow-lg shadow-theme-rose/30 active:scale-[0.98] transition-all flex items-center justify-center gap-3 tracking-[0.2em] text-lg mt-4 group overflow-hidden relative mb-safe">
+    <div class="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
+    <span class="relative z-10">確認並提交數位契約</span>
+    <i data-lucide="send" class="w-5 h-5 relative z-10 group-hover:translate-x-1 transition-transform"></i>
+</button>
+
+<!-- 增加底部安全距離，防止被手機 Home Bar 擋住 -->
+<div class="h-24 w-full"></div>
             </form>
         </div>
     </main>
@@ -865,7 +878,7 @@
     <div id="signatureModal" class="fixed inset-0 z-[9999] hidden bg-theme-text/80 backdrop-blur-md flex items-center justify-center opacity-0 transition-opacity duration-300">
         
 
-        <div class="bg-[#FAF8F5] w-full h-full md:w-[95vw] md:h-[92vh] md:rounded-[32px] p-4 md:p-8 flex flex-col shadow-2xl transform translate-y-full transition-transform duration-500 cubic-bezier(0.32, 0.72, 0, 1)" id="modalContent">
+<div class="bg-[#FAF8F5] w-full h-[100dvh] md:w-[95vw] md:h-[92vh] md:rounded-[32px] p-4 md:p-8 flex flex-col shadow-2xl transform translate-y-full transition-transform duration-500 cubic-bezier(0.32, 0.72, 0, 1)" id="modalContent">
             
             <div class="flex justify-between items-center mb-4 shrink-0">
                 <button onclick="closeSignatureModal()" class="w-12 h-12 md:w-14 md:h-14 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-red-50 hover:text-red-500 hover:border-red-200 transition shadow-sm">
