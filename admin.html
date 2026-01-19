@@ -760,15 +760,19 @@
         setTimeout(() => document.getElementById('auth-password').focus(), 100);
     }
 
-    // 關閉驗證彈窗
+// 關閉驗證彈窗
     function closeAuthModal() {
         const modal = document.getElementById('auth-modal');
         modal.classList.add('opacity-0');
-        setTimeout(() => modal.classList.add('hidden'), 300);
-        pendingAction = null; // 清除待辦
+        setTimeout(() => {
+            modal.classList.add('hidden');
+            // pendingAction = null; // 這行可以註解掉或刪除，因為我們已經在 handleAuthConfirm 處理過了
+        }, 300);
+        // 如果你希望保持視窗關閉就清空，這行保留也沒關係，因為上面的 handleAuthConfirm 已經修好了
+        pendingAction = null; 
     }
 
-    // 處理驗證確認
+// 處理驗證確認
     async function handleAuthConfirm() {
         const btn = document.getElementById('auth-confirm-btn');
         const originalText = btn.innerHTML;
@@ -786,19 +790,22 @@
 
             // 驗證密碼
             const { error } = await _supabase.auth.signInWithPassword({
-                email: 'elvira5201314@gmail.com',
+                email: 'elvira5201314@gmail.com', // 請確認這裡是用戶資料庫裡有的 email
                 password: password
             });
 
             if (error) throw error;
 
-            // 驗證成功
+            // ★ 修正點：先將動作存到區域變數，避免 closeAuthModal 把 pendingAction 清空後抓不到
+            const action = pendingAction;
+
+            // 驗證成功，關閉視窗
             closeAuthModal();
             
-            // 根據剛剛設定的動作，執行對應函式
+            // 執行對應函式 (改用剛剛存下來的 action 變數)
             setTimeout(() => {
-                if (pendingAction === 'save') executeSave();
-                else if (pendingAction === 'delete') executeDelete();
+                if (action === 'save') executeSave();
+                else if (action === 'delete') executeDelete();
             }, 300);
 
         } catch (error) {
