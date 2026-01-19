@@ -443,18 +443,39 @@ input, select, textarea {
 <input type="text" id="ownerId" required maxlength="10" placeholder="A123456789" class="input-minimal" autocapitalize="characters">
                             <div class="error-msg">格式錯誤</div>
                         </div>
-                        <div class="group input-group">
-                            <label class="block text-[10px] font-bold text-theme-sub uppercase tracking-wider mb-1">聯絡手機 <span class="text-theme-rose">*</span></label>
-                            <div class="relative">
-<input type="tel" id="ownerPhone" required maxlength="10" placeholder="09xxxxxxxx" class="input-minimal pr-10" inputmode="tel" oninput="handlePhoneInput(this)">
-                                <button type="button" onclick="searchOldCustomer()" class="absolute right-0 top-1/2 -translate-y-1/2 p-2 text-theme-sub hover:text-theme-rose transition-colors animate-pulse-slow" title="搜尋舊客資料">
-                                    <i data-lucide="search" class="w-5 h-5"></i>
+<div class="group input-group">
+<label class="flex items-center flex-wrap gap-2 mb-1 cursor-pointer">
+    <span class="font-bold uppercase tracking-wider">
+        聯絡手機 <span class="text-theme-rose">*</span>
+    </span>
+    
+    <div class="flex items-center gap-1 text-theme-rose select-none">
+        <i data-lucide="sparkles" class="w-3 h-3"></i>
+        <span class="text-[11px] font-bold tracking-normal">
+            輸入號碼搜尋，帶入歷史資料
+        </span>
+    </div>
+</label>                            
+                            <div class="flex gap-2 items-stretch">
+                                <div class="relative flex-1">
+                                    <input type="tel" id="ownerPhone" required maxlength="10" placeholder="09xxxxxxxx" 
+                                           class="input-minimal w-full h-full font-num tracking-widest text-lg" 
+                                           inputmode="tel" oninput="handlePhoneInput(this)">
+                                </div>
+                                
+                                <button type="button" onclick="searchOldCustomer()" 
+                                        class="shrink-0 px-4 rounded-xl bg-gradient-to-br from-theme-rose to-theme-roseDeep text-white font-bold text-sm shadow-md shadow-theme-rose/30 active:scale-95 transition-all flex flex-col items-center justify-center gap-0.5 min-w-[80px] group/btn relative overflow-hidden">
+                                    
+                                    <div class="absolute inset-0 bg-white/20 translate-y-full group-hover/btn:translate-y-0 transition-transform duration-300"></div>
+                                    
+                                    <i data-lucide="search" class="w-5 h-5 relative z-10"></i>
+                                    <span class="text-[10px] relative z-10">搜尋舊客</span>
                                 </button>
                             </div>
+                            
                             <div class="error-msg">格式應為 09xxxxxxxx</div>
-                            <p class="text-[10px] text-theme-sub mt-1">輸入手機號碼可自動搜尋歷史資料！</p>
-                        </div>
-                        <div class="group input-group">
+
+                        </div>                        <div class="group input-group">
                              <label class="block text-[10px] font-bold text-theme-sub uppercase tracking-wider mb-1">通訊地址 <span class="text-theme-rose">*</span></label>
                             <input type="text" id="ownerAddress" required placeholder="請輸入地址" class="input-minimal">
                         </div>
@@ -729,7 +750,7 @@ input, select, textarea {
                             <div class="bg-theme-rose/5 rounded-lg p-3 flex items-start gap-2 mt-3">
                                 <i data-lucide="alert-circle" class="w-4 h-4 text-theme-rose shrink-0 mt-0.5"></i>
                                 <p class="text-xs text-theme-rose font-medium leading-relaxed">
-                                    逾時 <span class="font-bold">30 分鐘</span> 以上，依照價目表公告之 安親費 額外收費。
+                                    逾時 <span class="font-bold">2 小時</span> 以上，將酌收 $150/小時 逾時費 。
                                 </p>
                             </div>
                         </div>
@@ -1501,119 +1522,134 @@ input, select, textarea {
             return publicUrl;
         }
 
-// --- 優化版 Email 模板 (奶茶色系 + Logo置頂) ---
+// --- 3. 產生 Email HTML (V3 終極完整版) ---
         function generateEmailHtml(data) {
             const LOGO_URL = "https://anzxwdphcxafxsglomez.supabase.co/storage/v1/object/public/logo/logo.png";
             const now = new Date();
             const signTimeStr = `${now.getFullYear()}/${(now.getMonth()+1).toString().padStart(2,'0')}/${now.getDate().toString().padStart(2,'0')} ${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
 
-            // 處理病史顯示文字
+            // 處理病史顯示
             let historyDisplay = data.has_history;
             if(data.has_history === '有' && data.history_notes) {
-                historyDisplay += ` (${data.history_notes})`;
+                historyDisplay += `<br><span style="color:#B56576; font-size:13px;">(備註: ${data.history_notes})</span>`;
             }
 
-            // 判斷是否顯示高風險條款 (只有 risk_factors 有內容才顯示)
-            const showRiskTerms = data.risk_factors && data.risk_factors.length > 0;
+            // 讀取完整條款內容 (直接使用全域變數 TERMS_CONTENT)
+            // 確保條款文字是黑色，方便閱讀
+            const generalTerms = TERMS_CONTENT.general.replace(/color:#8C857B/g, "color:#333");
+            const riskTerms = data.risk_factors && data.risk_factors.length > 0 ? TERMS_CONTENT.risk : '';
 
             return `
             <!DOCTYPE html>
             <html>
             <head>
                 <style>
-                    body { margin: 0; padding: 0; background-color: #FAF8F5; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #4A4238; }
-                    .wrapper { width: 100%; table-layout: fixed; background-color: #FAF8F5; padding-bottom: 40px; }
-                    .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 20px; overflow: hidden; box-shadow: 0 4px 20px rgba(216, 142, 153, 0.15); }
-                    .header { background: linear-gradient(135deg, #D88E99 0%, #C5A065 100%); padding: 30px 20px; text-align: center; }
-                    .header-logo { width: 80px; height: 80px; background: #fff; border-radius: 50%; padding: 5px; margin: 0 auto 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); display: block; }
-                    .header h1 { margin: 0; color: #ffffff; font-size: 22px; letter-spacing: 2px; font-weight: bold; }
-                    .header p { margin: 5px 0 0; color: rgba(255,255,255,0.9); font-size: 12px; letter-spacing: 1px; }
+                    body { margin: 0; padding: 0; background-color: #FAF8F5; font-family: 'Microsoft JhengHei', Arial, sans-serif; color: #4A4238; }
+                    .wrapper { width: 100%; background-color: #FAF8F5; padding-bottom: 40px; }
+                    .container { max-width: 640px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
                     
-                    .content { padding: 30px; }
-                    .greeting { font-size: 16px; margin-bottom: 25px; line-height: 1.6; text-align: center; color: #8C857B; }
-                    .greeting strong { color: #D88E99; font-size: 18px; }
+                    /* Header Style */
+                    .header { background: linear-gradient(135deg, #D88E99 0%, #C5A065 100%); padding: 30px 20px; text-align: center; color: white; }
+                    .header h1 { margin: 10px 0 5px; font-size: 24px; letter-spacing: 2px; }
+                    .header p { margin: 0; font-size: 12px; opacity: 0.9; letter-spacing: 1px; }
+                    
+                    /* Content Style */
+                    .content { padding: 40px 30px; }
+                    .section-header { border-left: 4px solid #D88E99; padding-left: 10px; margin: 30px 0 15px; font-size: 16px; font-weight: bold; color: #C5A065; letter-spacing: 1px; }
+                    .first-section { margin-top: 0; } /* 第一個區塊不需要上方 margin */
 
-                    .card { background-color: #FAF8F5; border-radius: 12px; padding: 20px; margin-bottom: 20px; border: 1px solid rgba(140, 133, 123, 0.1); }
-                    .card-title { color: #C5A065; font-size: 14px; font-weight: bold; margin-bottom: 15px; border-bottom: 1px dashed #C5A065; padding-bottom: 8px; letter-spacing: 1px; }
+                    /* Table Style */
+                    table { width: 100%; border-collapse: collapse; font-size: 14px; margin-bottom: 10px; }
+                    th { width: 35%; text-align: left; padding: 8px; color: #8C857B; font-weight: normal; vertical-align: top; border-bottom: 1px dashed #eee; }
+                    td { width: 65%; padding: 8px; color: #333; font-weight: 500; border-bottom: 1px dashed #eee; }
+                    .highlight { color: #D88E99; font-weight: bold; }
                     
-                    .row { margin-bottom: 10px; display: block; font-size: 14px; }
-                    .label { color: #8C857B; font-size: 12px; font-weight: bold; display: inline-block; width: 80px; }
-                    .value { color: #4A4238; font-weight: 500; }
-                    
-                    .highlight-box { background-color: #FFF0F2; border-left: 4px solid #D88E99; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
-                    .risk-box { background-color: #FEF2F2; border: 1px solid #FECACA; padding: 15px; border-radius: 8px; margin-top: 20px; font-size: 13px; color: #7F1D1D; line-height: 1.6; }
-                    
-                    .signature-area { text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px dashed #ddd; }
-                    .sign-img { max-width: 200px; height: auto; margin-bottom: 10px; }
-                    
-                    .footer { text-align: center; font-size: 12px; color: #8C857B; padding: 20px; background-color: #f4f1ea; }
+                    /* Box Styles */
+                    .service-box { background-color: #FFF0F2; padding: 20px; border-radius: 8px; border: 1px solid #FFD1D9; text-align: center; margin-bottom: 30px; }
+                    .service-title { color: #8C857B; font-size: 12px; margin-bottom: 5px; font-weight: bold; text-transform: uppercase; }
+                    .service-value { color: #B56576; font-size: 20px; font-weight: bold; margin-bottom: 15px; }
+                    .pickup-value { color: #4A4238; font-size: 18px; font-weight: bold; }
+
+                    .terms-container { background-color: #F9F9F9; padding: 20px; border-radius: 8px; font-size: 13px; line-height: 1.6; color: #333; border: 1px solid #eee; margin-top: 10px; text-align: justify; }
+                    .risk-alert { background-color: #FEF2F2; border: 1px solid #FECACA; padding: 15px; border-radius: 8px; margin-top: 20px; color: #7F1D1D; }
+
+                    .footer { text-align: center; padding: 20px; font-size: 12px; color: #999; border-top: 1px solid #eee; background: #fff; }
                 </style>
             </head>
             <body>
                 <div class="wrapper">
-                    <div style="height: 30px;"></div>
+                    <div style="height: 20px;"></div>
                     <div class="container">
                         <div class="header">
-                            <img src="${LOGO_URL}" class="header-logo" alt="Logo">
+                            <img src="${LOGO_URL}" width="70" style="border-radius:50%; background:#fff; padding:4px; box-shadow:0 2px 5px rgba(0,0,0,0.1);">
                             <h1>寵物美容契約書</h1>
-                            <p>AI GO PET SALON SERVICE AGREEMENT</p>
+                            <p>SERVICE AGREEMENT COPY</p>
                         </div>
-                        
+
                         <div class="content">
-                            <div class="greeting">
-                                親愛的 <strong>${data.owner_name}</strong> 您好<br>
-                                感謝您選擇萌寵當家，以下為您的服務契約副本：
+                            <div class="section-header first-section">本次服務內容</div>
+                            <div class="service-box">
+                                <div class="service-title">SERVICE ITEM</div>
+                                <div class="service-value">${data.service_type}</div>
+                                <div style="height:1px; background:#FFD1D9; width:50%; margin:10px auto;"></div>
+                                <div class="service-title">PICKUP TIME</div>
+                                <div class="pickup-value">${data.pickup_time}</div>
+                                <div style="font-size:11px; color:#999; margin-top:5px;">* 逾時 30 分鐘以上將收取安親費</div>
                             </div>
 
-                            <div class="highlight-box">
-                                <div class="row"><span class="label">本次服務</span> <span class="value" style="color:#D88E99; font-size:16px; font-weight:bold;">${data.service_type}</span></div>
-                                <div class="row" style="margin-bottom:0;"><span class="label">預計接回</span> <span class="value">${data.pickup_time}</span></div>
-                            </div>
+                            <div class="section-header">寵物詳細資料 (Pet Info)</div>
+                            <table>
+                                <tr><th>寵物名字</th><td class="highlight" style="font-size:16px;">${data.pet_name}</td></tr>
+                                <tr><th>品種 / 花色</th><td>${data.pet_breed} / ${data.pet_color}</td></tr>
+                                <tr><th>年齡</th><td>${data.pet_age} 歲</td></tr>
+                                <tr><th>性別 / 結紮</th><td>${data.pet_sex} / ${data.is_neutered}</td></tr>
+                                <tr><th>晶片號碼</th><td>${data.pet_chip}</td></tr>
+                                <tr><th>行為表現</th><td>
+                                    親人: ${data.is_friendly} / 親狗: ${data.is_dog_friendly}<br>
+                                    <span style="color:${data.is_aggressive==='是'?'red':'inherit'}">具攻擊性: ${data.is_aggressive}</span>
+                                </td></tr>
+                                <tr><th>過往病史</th><td>${historyDisplay}</td></tr>
+                            </table>
 
-                            <div class="card">
-                                <div class="card-title">PET INFO 寵物資料</div>
-                                <div class="row"><span class="label">名字/品種</span> <span class="value">${data.pet_name} (${data.pet_breed})</span></div>
-                                <div class="row"><span class="label">性別/年齡</span> <span class="value">${data.pet_sex} / ${data.pet_age} 歲</span></div>
-                                <div class="row"><span class="label">晶片號碼</span> <span class="value">${data.pet_chip}</span></div>
-                                <div class="row"><span class="label">基本狀況</span> <span class="value">結紮:${data.is_neutered} / 親人:${data.is_friendly} / 親狗:${data.is_dog_friendly}</span></div>
-                                <div class="row"><span class="label" style="color:${data.is_aggressive === '是'?'red':'#8C857B'}">具攻擊性</span> <span class="value" style="color:${data.is_aggressive === '是'?'red':'inherit'}">${data.is_aggressive}</span></div>
-                                <div class="row"><span class="label">過往病史</span> <span class="value">${historyDisplay}</span></div>
-                            </div>
+                            <div class="section-header">飼主基本資料 (Owner Info)</div>
+                            <table>
+                                <tr><th>飼主姓名</th><td>${data.owner_name}</td></tr>
+                                <tr><th>身分證字號</th><td>${data.owner_id}</td></tr>
+                                <tr><th>聯絡手機</th><td>${data.owner_phone}</td></tr>
+                                <tr><th>通訊地址</th><td>${data.owner_address}</td></tr>
+                                <tr><th>緊急聯絡人</th><td>${data.emergency_name}</td></tr>
+                                <tr><th>緊急聯絡電話</th><td>${data.emergency_phone}</td></tr>
+                                <tr><th>指定就醫醫院</th><td>${data.hospital}</td></tr>
+                            </table>
 
-                            <div class="card">
-                                <div class="card-title">OWNER INFO 飼主資料</div>
-                                <div class="row"><span class="label">姓名</span> <span class="value">${data.owner_name}</span></div>
-                                <div class="row"><span class="label">電話</span> <span class="value">${data.owner_phone}</span></div>
-                                <div class="row"><span class="label">地址</span> <span class="value">${data.owner_address}</span></div>
-                                <div class="row" style="margin-bottom:0;"><span class="label">緊急聯絡</span> <span class="value">${data.emergency_name} (${data.emergency_phone})</span></div>
-                            </div>
-
-                            <div style="font-size:12px; color:#8C857B; text-align:justify; padding:0 5px;">
-                                <p><strong>【定型化契約重點摘要】</strong></p>
-                                <p>本服務不涉及醫療行為。逾時接回 30 分鐘以上，將依價目表收取安親費。飼主已確認預計接回時間與服務金額無誤。</p>
+                            <div class="section-header">契約條款與聲明</div>
+                            <div class="terms-container">
+                                ${generalTerms}
                                 
-                                ${showRiskTerms ? `
-                                <div class="risk-box">
-                                    <strong>【高齡/高風險特別告知】</strong><br>
-                                    因寵物符合 ${data.risk_factors} 之條件，飼主已詳閱風險告知條款。若美容過程中因寵物自身健康狀況(如心肺功能不佳、休克、舊疾復發)所致之意外，且非因乙方故意或重大過失，乙方不負損害賠償責任。
+                                ${riskTerms ? `
+                                <div class="risk-alert">
+                                    <strong>【高風險 / 特殊告知條款】</strong><br>
+                                    ${riskTerms}
                                 </div>` : ''}
                             </div>
 
-                            <div class="signature-area">
-                                <img src="${data.signature_data}" class="sign-img">
-                                <div style="font-size:12px; color:#8C857B; font-weight:bold;">
-                                    簽署日期：${signTimeStr}
+                            <div style="margin-top: 40px; text-align: center;">
+                                <p style="font-size:12px; color:#666; margin-bottom:10px;">本人已確認資料無誤，並詳閱上述所有條款。</p>
+                                <div style="border: 2px dashed #ddd; border-radius: 10px; padding: 15px; display: inline-block; background: #fff;">
+                                    <img src="${data.signature_data}" width="200" style="max-height: 80px; width: auto;">
                                 </div>
+                                <p style="font-size: 12px; color: #999; margin-top: 5px;">
+                                    簽署日期：${signTimeStr}
+                                </p>
                             </div>
                         </div>
 
                         <div class="footer">
                             <strong>萌寵當家 AI GO PET SALON</strong><br>
-                            02-7751-5677 | 新北市蘆洲區長安街285巷30號<br>
-                            週二至週日 10:00 - 19:00 (週一公休)
+                            新北市蘆洲區長安街285巷30號 | 02-7751-5677<br>
+                            Line ID: @567xvlnf
                         </div>
                     </div>
-                    <div style="height: 30px;"></div>
                 </div>
             </body>
             </html>
@@ -1662,7 +1698,7 @@ input, select, textarea {
                     owner_address: document.getElementById('ownerAddress').value,
                     emergency_name: document.getElementById('emergencyName').value,
                     emergency_phone: document.getElementById('emergencyPhone').value,
-                    hospital: document.getElementById('hospital').value,
+                    hospital: document.getElementById('hospital').value || '未指定 (依店家特約醫院為主)',
 
                     pet_name: document.getElementById('petName').value,
                     pet_breed: document.getElementById('petBreed').value,
@@ -1671,9 +1707,10 @@ input, select, textarea {
                     
                     pet_chip: (function(){
                         const status = document.getElementById('chipStatus').value;
+                        const number = document.getElementById('petChip').value;
                         if(status === 'no_chip') return '無晶片';
-                        if(status === 'unknown') return '號碼不詳';
-                        return document.getElementById('petChip').value;
+                        if(status === 'unknown') return '有晶片 (號碼不詳)';
+                        return `有晶片 (${number})`; // 顯示：有晶片 (123456789)
                     })(),
 
                     pet_sex: document.querySelector('input[name="petSex"]:checked')?.value,
