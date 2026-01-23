@@ -466,8 +466,8 @@ input, select, textarea {
                                            inputmode="tel" oninput="handlePhoneInput(this)">
                                 </div>
                                 
-                                <button type="button" onclick="searchOldCustomer()" 
-                                        class="shrink-0 px-4 rounded-xl bg-gradient-to-br from-theme-rose to-theme-roseDeep text-white font-bold text-sm shadow-md shadow-theme-rose/30 active:scale-95 transition-all flex flex-col items-center justify-center gap-0.5 min-w-[80px] group/btn relative overflow-hidden">
+<button type="button" id="searchBtn" onclick="searchOldCustomer()" 
+        class="shrink-0 px-4 rounded-xl bg-gradient-to-br from-theme-rose to-theme-roseDeep text-white font-bold text-sm shadow-md shadow-theme-rose/30 active:scale-95 transition-all flex flex-col items-center justify-center gap-0.5 min-w-[80px] group relative overflow-hidden">
                                     
                                     <div class="absolute inset-0 bg-white/20 translate-y-full group-hover/btn:translate-y-0 transition-transform duration-300"></div>
                                     
@@ -1800,55 +1800,87 @@ if (isNotifyLater) togglePickupTimeMode();
         }
 
 
-        // --- 舊客搜尋 (改為抓取全部並過濾) ---
-        async function searchOldCustomer() {
-            const phoneInput = document.getElementById('ownerPhone');
-            const phone = phoneInput.value.trim();
-            
-            if (!phone || phone.length < 9) {
-                showToast('請輸入正確的手機號碼', false);
-                return;
-            }
-            
-            const searchBtn = phoneInput.nextElementSibling;
-            const originalIcon = searchBtn.innerHTML;
-            searchBtn.innerHTML = '<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i>';
-            lucide.createIcons();
+// --- 舊客搜尋 (修正版) ---
+async function searchOldCustomer() {
+    // 1. 精準獲取 DOM 元素
+    const phoneInput = document.getElementById('ownerPhone');
+    const searchBtn = document.getElementById('searchBtn'); // ★ 修改這裡：直接用 ID 抓取
 
-            try {
-                const { data, error } = await sbClient
-                    .from('service_contracts')
-                    .select('*')
-                    .eq('owner_phone', phone)
-                    .order('created_at', { ascending: false });
+    // 2. 防呆檢查：如果元素不存在，直接結束
+    if (!phoneInput || !searchBtn) {
+        console.error('找不到必要的 DOM 元素 (ownerPhone 或 searchBtn)');
+        return;
+    }
 
-                if (error) throw error;
+    const phone = phoneInput.value.trim();
+    
+    // 3. 基本驗證
+    if (!phone) {
+        showToast('請輸入手機號碼', false);
+        return;
+    }
 
-                if (data && data.length > 0) {
-                    const uniquePets = {};
-                    data.forEach(record => {
-                        const name = record.pet_name;
-                        if (!uniquePets[name]) {
-                            uniquePets[name] = record;
-                        }
-                    });
-                    
-                    const petList = Object.values(uniquePets);
+    // 4. 格式化：移除所有非數字字符
+    const cleanPhone = phone.replace(/\D/g, '');
 
-                    // ★ 修改處：不管找到幾隻，全部都強制跳出彈窗
-                    renderPetSelectionModal(petList);
+    if (cleanPhone.length !== 10) {
+        showToast('手機號碼格式錯誤，請輸入 10 碼數字', false);
+        return;
+    }
 
-                } else {
-                    showToast('查無此號碼紀錄', false);
+    // 5. 儲存按鈕原本的圖示/文字
+    const originalIcon = searchBtn.innerHTML;
+    
+    // 6. 顯示載入中動畫
+    searchBtn.innerHTML = '<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i>';
+    searchBtn.disabled = true; // 防止重複點擊
+    lucide.createIcons();
+
+    try {
+        console.log(`正在搜尋手機號碼: ${cleanPhone}`);
+
+        const { data, error, count } = await sbClient
+            .from('service_contracts')
+            .select('*', { count: 'exact' })
+            .eq('owner_phone', cleanPhone)
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        console.log('查詢結果:', { data, count });
+
+        if (data && data.length > 0) {
+            // 去重邏輯
+            const uniquePets = {};
+            data.forEach(record => {
+                const name = record.pet_name;
+                if (!uniquePets[name]) {
+                    uniquePets[name] = record;
                 }
-            } catch (err) {
-                console.error('Search Error:', err);
-                showToast('查詢失敗，請稍後再試', false);
-            } finally {
-                searchBtn.innerHTML = originalIcon;
-                lucide.createIcons();
+            });
+            
+            const petList = Object.values(uniquePets);
+            renderPetSelectionModal(petList);
+        } else {
+            if (count === 0) {
+                showToast(`查無手機號碼 ${cleanPhone} 的紀錄`, false);
+            } else {
+                showToast('查詢發生錯誤', false);
             }
         }
+    } catch (err) {
+        console.error('Search Error:', err);
+        showToast('查詢失敗，請稍後再試', false);
+    } finally {
+        // 7. 恢復按鈕狀態 (無論成功或失敗都會執行)
+        if (searchBtn) {
+            searchBtn.innerHTML = originalIcon;
+            searchBtn.disabled = false;
+            lucide.createIcons();
+        }
+    }
+}
+
 
         // 輔助函數：填寫表單資料 (從 searchOldCustomer 獨立出來)
         function fillFormWithData(data) {
